@@ -4,7 +4,6 @@
         "aws_region": "us-east-1",
         "keep_warm": false,
         "role_name": "LabRole",
-        "profile_name": "default",
         "manage_roles": false,
         "project_name": "parcial2-0bigda",
         "runtime": "python3.9",
