@@ -72,7 +72,5 @@ jobs:
           zappa update dev
           zappa invoke dev funcion_lambda.lambda_handler
 
-      #- name: Test
-      #  run: pytest
-      #- name: Flake
-      #  run : flake8 --exclude env
+      - name: Test
+        run: pytest test.py
