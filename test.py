@@ -1,50 +1,23 @@
 import unittest
-from pyspark.sql import SparkSession
-from pyspark.sql.types import StructType, StructField, StringType, IntegerType, DoubleType
-from pyspark.ml import Pipeline
-from pyspark.ml.feature import VectorAssembler, StandardScaler, StringIndexer, OneHotEncoder
-from pyspark.ml.regression import LinearRegression
-from pyspark.ml.evaluation import RegressionEvaluator
+from unittest.mock import MagicMock
+from lambda_function import lambda_handler  # Asegúrate de importar tu función lambda_handler desde tu archivo lambda_function.py
 
-class SparkTest(unittest.TestCase):
-    @classmethod
-    def setUpClass(cls):
-        cls.spark = SparkSession.builder.master("local[2]").appName("UnitTesting").getOrCreate()
+class TestLambdaHandler(unittest.TestCase):
+    
+    def test_lambda_handler(self):
+        # Creamos un evento de prueba y un contexto de prueba
+        event = {}
+        context = MagicMock()
 
-    @classmethod
-    def tearDownClass(cls):
-        cls.spark.stop()
+        # Llamamos a la función lambda_handler
+        response = lambda_handler(event, context)
 
-    def test_pipeline_model(self):
-        # Definir el esquema con los tipos correctos
-        schema = StructType([
-            StructField("Adicional", StringType(), True),
-            StructField("Area", IntegerType(), True),
-            StructField("Bedrooms", IntegerType(), True),
-            StructField("Price", DoubleType(), True)  # Asegurar que Price es de tipo Double
-        ])
-        
-        # Crear datos de prueba con el esquema definido
-        data = [("house1", 2000, 3, 450000.0), ("house2", 1500, 4, 350000.0), ("house3", 1800, 3, 475000.0)]
-        df = self.spark.createDataFrame(data, schema=schema)
-        
-        # Definir las transformaciones y el modelo
-        indexer = StringIndexer(inputCol="Adicional", outputCol="AdicionalIndex")
-        assembler = VectorAssembler(inputCols=["Area", "Bedrooms", "AdicionalIndex"], outputCol="features")
-        scaler = StandardScaler(inputCol="features", outputCol="scaledFeatures")
-        lr = LinearRegression(featuresCol="scaledFeatures", labelCol="Price")
+        # Verificamos que se haya llamado a boto3.client con los argumentos correctos
+        context.client.assert_called_once_with('emr', region_name='us-east-1')
 
-        # Configurar el pipeline
-        pipeline = Pipeline(stages=[indexer, assembler, scaler, lr])
+        # Verificamos que la respuesta sea la esperada
+        self.assertEqual(response['statusCode'], 200)
+        self.assertIn('Cluster', response['body'])
 
-        # Fit y transformar
-        model = pipeline.fit(df)
-        result = model.transform(df)
-
-        # Evaluar el modelo
-        evaluator = RegressionEvaluator(labelCol="Price", predictionCol="prediction", metricName="rmse")
-        rmse = evaluator.evaluate(result)
-        self.assertLess(rmse, 100000, "El RMSE debería ser menor de 100000")
-
-if __name__ == "__main__":
+if __name__ == '__main__':
     unittest.main()
